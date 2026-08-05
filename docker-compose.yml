@@ -31,6 +31,7 @@ x-backend-env: &backend-env
     TIMEZONE: ${TIMEZONE:-Africa/Lagos}
     FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
     ENVIRONMENT: ${ENVIRONMENT:-production}
+  restart: unless-stopped
   depends_on:
     postgres:
       condition: service_healthy
@@ -40,6 +41,7 @@ x-backend-env: &backend-env
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-classflow}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
@@ -54,6 +56,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -65,6 +68,12 @@ services:
       context: ./backend
     <<: *backend-env
     command: sh -c "alembic upgrade head && python scripts/seed_course_rep.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
 
   worker:
     build:
@@ -83,8 +92,15 @@ services:
       context: ./frontend
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+    restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://127.0.0.1:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata:
