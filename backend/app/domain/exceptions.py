@@ -21,3 +21,7 @@ class UnsupportedContactMethodError(DomainError):
 
     def __init__(self, method: str):
         super().__init__(f"Contact method not yet supported: {method}")
+
+
+class ConflictError(DomainError):
+    """Raised for uniqueness violations or other state conflicts that aren't a status transition."""
