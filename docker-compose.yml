@@ -3,9 +3,6 @@ x-backend-env: &backend-env
     - .env
   environment:
     - PYTHONPATH=/app
-    - POSTGRES_USER=${POSTGRES_USER:-classflow}
-    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
-    - POSTGRES_DB=${POSTGRES_DB:-classflow}
   depends_on:
     postgres:
       condition: service_healthy
@@ -17,16 +14,12 @@ services:
     image: postgres:16-alpine
     env_file:
       - .env
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-classflow}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
-      POSTGRES_DB: ${POSTGRES_DB:-classflow}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_20260805:/var/lib/postgresql/data
     # ports:
     #   - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "PGPASSWORD=${POSTGRES_PASSWORD:-changeme} pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-classflow}"]
+      test: ["CMD-SHELL", "PGPASSWORD=$$POSTGRES_PASSWORD pg_isready -h 127.0.0.1 -U $$POSTGRES_USER"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -73,4 +66,4 @@ services:
       - backend
 
 volumes:
-  postgres_data:
+  postgres_data_20260805:
