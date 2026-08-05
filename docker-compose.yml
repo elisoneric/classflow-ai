@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_DB
+      POSTGRES_USER: classflow
+      POSTGRES_DB: classflow
+      POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -28,37 +28,36 @@ services:
       context: ./backend
     restart: unless-stopped
     environment:
-      - PYTHONPATH=/app
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_DB
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET_KEY
-      - COURSE_REP_EMAIL
-      - COURSE_REP_PASSWORD
-      - GEMINI_API_KEY
-      - GEMINI_MODEL
-      - AI_CONFIDENCE_THRESHOLD
-      - ANTHROPIC_API_KEY
-      - ANTHROPIC_MODEL
-      - SMTP_HOST
-      - SMTP_PORT
-      - SMTP_USERNAME
-      - SMTP_PASSWORD
-      - SMTP_FROM_EMAIL
-      - SMTP_USE_TLS
-      - IMAP_HOST
-      - IMAP_PORT
-      - IMAP_USERNAME
-      - IMAP_PASSWORD
-      - IMAP_MAILBOX
-      - IMAP_USE_SSL
-      - IMAP_POLL_INTERVAL_SECONDS
-      - TIMEZONE
-      - FRONTEND_ORIGIN
-      - ENVIRONMENT=production
+      PYTHONPATH: /app
+      POSTGRES_USER: classflow
+      POSTGRES_DB: classflow
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: production
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      COURSE_REP_EMAIL: ${COURSE_REP_EMAIL:-admin@classflow.ai}
+      COURSE_REP_PASSWORD: ${COURSE_REP_PASSWORD:-changeme}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash}
+      AI_CONFIDENCE_THRESHOLD: ${AI_CONFIDENCE_THRESHOLD:-0.75}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-haiku-4-5-20251001}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-classflow@example.com}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      IMAP_HOST: ${IMAP_HOST:-}
+      IMAP_PORT: ${IMAP_PORT:-993}
+      IMAP_USERNAME: ${IMAP_USERNAME:-}
+      IMAP_PASSWORD: ${IMAP_PASSWORD:-}
+      IMAP_MAILBOX: ${IMAP_MAILBOX:-INBOX}
+      IMAP_USE_SSL: ${IMAP_USE_SSL:-true}
+      IMAP_POLL_INTERVAL_SECONDS: ${IMAP_POLL_INTERVAL_SECONDS:-75}
+      TIMEZONE: ${TIMEZONE:-Africa/Lagos}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
     command: sh -c "alembic upgrade head && python scripts/seed_course_rep.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on:
       postgres:
@@ -77,37 +76,36 @@ services:
       context: ./backend
     restart: unless-stopped
     environment:
-      - PYTHONPATH=/app
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_DB
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET_KEY
-      - GEMINI_API_KEY
-      - GEMINI_MODEL
-      - AI_CONFIDENCE_THRESHOLD
-      - ANTHROPIC_API_KEY
-      - ANTHROPIC_MODEL
-      - SMTP_HOST
-      - SMTP_PORT
-      - SMTP_USERNAME
-      - SMTP_PASSWORD
-      - SMTP_FROM_EMAIL
-      - SMTP_USE_TLS
-      - IMAP_HOST
-      - IMAP_PORT
-      - IMAP_USERNAME
-      - IMAP_PASSWORD
-      - IMAP_MAILBOX
-      - IMAP_USE_SSL
-      - IMAP_POLL_INTERVAL_SECONDS
-      - TIMEZONE
-      - FRONTEND_ORIGIN
-      - ENVIRONMENT=production
-      - COURSE_REP_EMAIL
-      - COURSE_REP_PASSWORD
+      PYTHONPATH: /app
+      POSTGRES_USER: classflow
+      POSTGRES_DB: classflow
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: production
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      COURSE_REP_EMAIL: ${COURSE_REP_EMAIL:-admin@classflow.ai}
+      COURSE_REP_PASSWORD: ${COURSE_REP_PASSWORD:-changeme}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash}
+      AI_CONFIDENCE_THRESHOLD: ${AI_CONFIDENCE_THRESHOLD:-0.75}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-haiku-4-5-20251001}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-classflow@example.com}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      IMAP_HOST: ${IMAP_HOST:-}
+      IMAP_PORT: ${IMAP_PORT:-993}
+      IMAP_USERNAME: ${IMAP_USERNAME:-}
+      IMAP_PASSWORD: ${IMAP_PASSWORD:-}
+      IMAP_MAILBOX: ${IMAP_MAILBOX:-INBOX}
+      IMAP_USE_SSL: ${IMAP_USE_SSL:-true}
+      IMAP_POLL_INTERVAL_SECONDS: ${IMAP_POLL_INTERVAL_SECONDS:-75}
+      TIMEZONE: ${TIMEZONE:-Africa/Lagos}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
     command: python worker.py
     depends_on:
       postgres:
@@ -120,37 +118,36 @@ services:
       context: ./backend
     restart: unless-stopped
     environment:
-      - PYTHONPATH=/app
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_DB
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET_KEY
-      - GEMINI_API_KEY
-      - GEMINI_MODEL
-      - AI_CONFIDENCE_THRESHOLD
-      - ANTHROPIC_API_KEY
-      - ANTHROPIC_MODEL
-      - SMTP_HOST
-      - SMTP_PORT
-      - SMTP_USERNAME
-      - SMTP_PASSWORD
-      - SMTP_FROM_EMAIL
-      - SMTP_USE_TLS
-      - IMAP_HOST
-      - IMAP_PORT
-      - IMAP_USERNAME
-      - IMAP_PASSWORD
-      - IMAP_MAILBOX
-      - IMAP_USE_SSL
-      - IMAP_POLL_INTERVAL_SECONDS
-      - TIMEZONE
-      - FRONTEND_ORIGIN
-      - ENVIRONMENT=production
-      - COURSE_REP_EMAIL
-      - COURSE_REP_PASSWORD
+      PYTHONPATH: /app
+      POSTGRES_USER: classflow
+      POSTGRES_DB: classflow
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: production
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      COURSE_REP_EMAIL: ${COURSE_REP_EMAIL:-admin@classflow.ai}
+      COURSE_REP_PASSWORD: ${COURSE_REP_PASSWORD:-changeme}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash}
+      AI_CONFIDENCE_THRESHOLD: ${AI_CONFIDENCE_THRESHOLD:-0.75}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-haiku-4-5-20251001}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-classflow@example.com}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      IMAP_HOST: ${IMAP_HOST:-}
+      IMAP_PORT: ${IMAP_PORT:-993}
+      IMAP_USERNAME: ${IMAP_USERNAME:-}
+      IMAP_PASSWORD: ${IMAP_PASSWORD:-}
+      IMAP_MAILBOX: ${IMAP_MAILBOX:-INBOX}
+      IMAP_USE_SSL: ${IMAP_USE_SSL:-true}
+      IMAP_POLL_INTERVAL_SECONDS: ${IMAP_POLL_INTERVAL_SECONDS:-75}
+      TIMEZONE: ${TIMEZONE:-Africa/Lagos}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
     command: python scheduler_main.py
     depends_on:
       postgres:

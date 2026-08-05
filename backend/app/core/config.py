@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:5173"
 
     postgres_user: str = "classflow"
-    postgres_password: str = "changeme"
+    postgres_password: str = ""
     postgres_db: str = "classflow"
     postgres_host: str = "postgres"
     postgres_port: int = 5432
@@ -37,8 +37,12 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def assemble_db_url(self) -> "Settings":
-        quoted_pass = quote(self.postgres_password, safe="")
-        self.database_url = f"postgresql+asyncpg://{self.postgres_user}:{quoted_pass}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        if self.postgres_password:
+            quoted_pass = quote(self.postgres_password, safe="")
+            userinfo = f"{self.postgres_user}:{quoted_pass}"
+        else:
+            userinfo = self.postgres_user
+        self.database_url = f"postgresql+asyncpg://{userinfo}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         return self
     redis_url: str = "redis://localhost:6379/0"
 
