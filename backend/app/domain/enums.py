@@ -92,6 +92,7 @@ class AuditActor(StrEnum):
 
 
 class AuditEntityType(StrEnum):
+    SEMESTER = "SEMESTER"
     COURSE = "COURSE"
     LECTURER = "LECTURER"
     TIMETABLE_SLOT = "TIMETABLE_SLOT"
