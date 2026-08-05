@@ -1,6 +1,6 @@
 # ClassFlow AI — Project Source of Truth
 
-Status: **Architecture approved, pre-implementation.** This document is the single source of truth for vision, scope, architecture, and roadmap. Update it whenever a decision changes — do not let it drift from reality.
+Status: **V1 implemented and running end-to-end** (backend, scheduler/worker pipeline, frontend, all verified against live Postgres/Redis and, for the notification/scheduling loop, inside Docker). Not yet deployed to the VPS or connected to real SMTP/IMAP/Anthropic credentials. This document is the single source of truth for vision, scope, architecture, and roadmap. Update it whenever a decision changes — do not let it drift from reality.
 
 ---
 
@@ -96,6 +96,9 @@ sequenceDiagram
 | ADR-7 (assumption — confirm) | **Timezone is `Africa/Lagos`.** | Inferred from Nigerian MSc course-code conventions (CSC/SEN numbering). All timestamps stored in UTC in Postgres; converted at the API/frontend boundary. **Flag if this is wrong before implementation starts.** |
 | ADR-8 | **Workflow status and outcome are separate fields** on `ClassSession`. | `status` tracks where the session is in the pipeline (SCHEDULED → REMINDER_SENT → …→ ANNOUNCED). `outcome` tracks the actual class result (CONFIRMED/CANCELLED/DELAYED/RELOCATED/ONLINE/UNRESOLVED). Conflating them was a gap in the original spec — without this split, "delayed but not yet announced" and "delayed and announced" can't be distinguished. |
 | ADR-9 | **`TimetableSlot` (recurring template) is separate from `ClassSession` (concrete daily instance).** | Editing a session for one specific day (delay, relocation) must never mutate the recurring template. Sessions are generated daily from active slots; a slot change only affects sessions generated after the change. |
+| ADR-10 | **SQLAlchemy ORM models double as domain entities** rather than maintaining a separate set of plain domain dataclasses. Ports (`app/domain/ports.py`) type-hint against them directly. | Full separation (mapper classes translating ORM rows to distinct domain objects) is standard clean-architecture practice but is pure ceremony for a solo MVP with no second persistence backend on the roadmap. The pragmatic cost: unit tests using fake repositories must construct `Reminder.status` etc. explicitly rather than relying on SQLAlchemy's flush-time column defaults, since those defaults only apply once a row actually goes through a real `AsyncSession.flush()`. Caught this the hard way in `CourseService.create_course` (§16) — fixed by setting `status=CourseStatus.ACTIVE` explicitly at construction instead of depending on the mapped_column default. |
+| ADR-11 | **A reminder's delivery outcome (SMTP success/failure) is recorded only in the audit log, never in `Reminder.status`.** `status` stays `SENT` regardless of whether the send succeeded; only `handle_deadline` sets `EXPIRED`, only once the deadline actually passes with no response. | A bug caught by the scheduler-wiring integration test: marking a failed send as `EXPIRED` immediately short-circuited the retry logic (which only acts on `SENT` reminders), silently stranding the session. A bounced/failed send should flow through the same retry → fallback path as a real non-response, not a separate one. |
+| ADR-12 | **Resolving a session's outcome and announcing it are one atomic step**, not `PENDING_REVIEW/REMINDER_SENT → RESOLVED → ANNOUNCED` as originally sketched in §7. | Every path that determines an outcome (auto-approval above the confidence threshold, Course Rep approve/reject, manual override) needs to announce it — there was no use case in V1 for "resolved but not yet announced" as a distinct, addressable state. `SessionStatus.RESOLVED` is kept in the enum as a reserved value (e.g. for a future "resolved but announcement delivery failed" state) but nothing currently transitions into it. |
 
 ---
 
@@ -158,16 +161,17 @@ stateDiagram-v2
     [*] --> SCHEDULED
     SCHEDULED --> REMINDER_SENT
     REMINDER_SENT --> PENDING_REVIEW: AI confidence < threshold
-    REMINDER_SENT --> RESOLVED: AI confidence >= threshold
+    REMINDER_SENT --> ANNOUNCED: AI confidence >= threshold (resolve + announce are atomic)
     REMINDER_SENT --> REMINDER_SENT: retry (attempts remain)
     REMINDER_SENT --> UNRESOLVED: deadline + retries exhausted
-    PENDING_REVIEW --> RESOLVED: Course Rep approves/corrects
-    RESOLVED --> ANNOUNCED
+    PENDING_REVIEW --> ANNOUNCED: Course Rep approves/corrects
     UNRESOLVED --> ANNOUNCED: Course Rep resolves manually
     SCHEDULED --> ANNOUNCED: manual override (any time)
     REMINDER_SENT --> ANNOUNCED: manual override (cancels pending reminder)
     PENDING_REVIEW --> ANNOUNCED: manual override
 ```
+
+As built, resolving and announcing collapsed into one atomic service-layer step — every path that determines an outcome (auto-approval, Course Rep approve/reject, override) sends the announcement in the same transaction rather than passing through a separate `RESOLVED` status first. `SessionStatus.RESOLVED` is still defined in the enum (reserved — e.g. for a future "resolved but announcement delivery failed, don't re-resolve" state) but nothing currently sets it.
 
 ---
 
@@ -185,17 +189,15 @@ stateDiagram-v2
 | POST | `/courses/{id}/pause` \| `/resume` \| `/complete` | Lifecycle transitions |
 | GET/POST | `/lecturers` | List / create |
 | GET/PATCH/DELETE | `/lecturers/{id}` | Detail / update / remove |
-| POST/DELETE | `/courses/{id}/lecturers` | Attach/detach lecturer, set primary |
+| GET/POST/DELETE | `/courses/{id}/lecturers` | List / attach / detach, set primary |
 | GET/POST | `/courses/{id}/timetable-slots` | List / create |
 | PATCH/DELETE | `/timetable-slots/{id}` | Update / remove |
-| GET | `/class-sessions?date_from=&date_to=&course_id=&status=` | Filtered list (dashboard) |
-| GET | `/class-sessions/{id}` | Full detail incl. reminders, response, audit trail |
+| GET | `/class-sessions?date_from=&date_to=&course_id=&status=` | Filtered list — the frontend uses this directly for both "today" (date_from=date_to=today) and "pending review" (status=PENDING_REVIEW); no separate `/dashboard/*` endpoints exist |
+| GET | `/class-sessions/{id}` | Full detail incl. reminders, responses, announcements |
 | POST | `/class-sessions/{id}/override` | `{outcome, venue?, start_time?, mode?, note}` — immediate announce, cancels pending reminders |
 | POST | `/class-sessions/{id}/resend-reminder` | Manual re-trigger |
-| POST | `/class-sessions/{id}/approve` | Accept AI interpretation as-is (PENDING_REVIEW → RESOLVED) |
+| POST | `/class-sessions/{id}/approve` | Accept AI interpretation as-is (PENDING_REVIEW → ANNOUNCED) |
 | POST | `/class-sessions/{id}/reject` | Correct interpretation manually (→ becomes an override) |
-| GET | `/dashboard/today` | Aggregated today view |
-| GET | `/dashboard/pending-review` | Queue needing Course Rep decision |
 | GET | `/audit-logs?entity_type=&entity_id=&date_from=&date_to=` | Audit trail query |
 
 All mutating endpoints require the JWT; all writes go through the application-layer service, which is what actually writes the `audit_logs` row — routers never write audit entries directly.
@@ -352,7 +354,7 @@ classflow-ai/
 
 ## 17. Roadmap
 
-- **V1 (this document's scope):** everything in §2 "In scope."
+- **V1 (this document's scope):** everything in §2 "In scope" is implemented — full backend (clean-architecture layers, 12-table schema, all CRUD + workflow endpoints), the scheduler/RQ pipeline verified end-to-end inside Docker, and the frontend (all 6 screens) verified against real data in a browser. 34 backend tests passing. **Not yet done:** deployment to the VPS, and connecting real SMTP/IMAP/`ANTHROPIC_API_KEY` credentials — everything has been tested with placeholder credentials that fail gracefully (see PROJECT.md commits for verification notes). ADR-7's `Africa/Lagos` timezone assumption is still unconfirmed by the Course Rep — check `.env`'s `TIMEZONE` before relying on scheduled reminders.
 - **V1.1:** calendar exceptions enforced in the daily generation job; confidence threshold tuning from logged data; settings screen for default reminder config.
 - **V2:** WhatsApp as a lecturer reminder/reply channel (`WhatsAppChannel` adapter + inbound handling), still behind the existing `NotificationChannel`/`MessageInterpreter` ports.
 - **V3:** WhatsApp group posting for student announcements (separate service on the VPS, per the original spec's intent), reusing the same announcement code path with a new adapter.
