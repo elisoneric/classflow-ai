@@ -1,5 +1,7 @@
 import uuid
+from datetime import date, datetime, time, timezone
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.enums import AuditActor, AuditEntityType
@@ -32,3 +34,27 @@ class SqlAlchemyAuditLogWriter:
                 note=note,
             )
         )
+
+    async def list_all(
+        self,
+        *,
+        entity_type: AuditEntityType | None = None,
+        entity_id: uuid.UUID | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+    ) -> list[AuditLog]:
+        stmt = select(AuditLog).order_by(AuditLog.created_at.desc())
+        if entity_type is not None:
+            stmt = stmt.where(AuditLog.entity_type == entity_type)
+        if entity_id is not None:
+            stmt = stmt.where(AuditLog.entity_id == entity_id)
+        if date_from is not None:
+            stmt = stmt.where(
+                AuditLog.created_at >= datetime.combine(date_from, time.min, tzinfo=timezone.utc)
+            )
+        if date_to is not None:
+            stmt = stmt.where(
+                AuditLog.created_at <= datetime.combine(date_to, time.max, tzinfo=timezone.utc)
+            )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())

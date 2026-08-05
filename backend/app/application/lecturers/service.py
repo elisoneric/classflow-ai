@@ -31,6 +31,9 @@ class LecturerService:
     async def list_lecturers(self) -> list[Lecturer]:
         return await self._lecturers.list_all()
 
+    async def list_course_links(self, course_id: uuid.UUID) -> list[CourseLecturer]:
+        return await self._course_links.list_for_course(course_id)
+
     async def get_lecturer(self, lecturer_id: uuid.UUID) -> Lecturer:
         lecturer = await self._lecturers.get_by_id(lecturer_id)
         if lecturer is None:

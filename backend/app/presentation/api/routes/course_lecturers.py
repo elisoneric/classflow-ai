@@ -26,6 +26,15 @@ def get_lecturer_service(session: AsyncSession = Depends(get_db)) -> LecturerSer
     )
 
 
+@router.get("/{course_id}/lecturers", response_model=list[CourseLecturerResponse])
+async def list_course_lecturers(
+    course_id: uuid.UUID,
+    service: LecturerService = Depends(get_lecturer_service),
+) -> list[CourseLecturerResponse]:
+    links = await service.list_course_links(course_id)
+    return [CourseLecturerResponse.model_validate(link) for link in links]
+
+
 @router.post(
     "/{course_id}/lecturers",
     response_model=CourseLecturerResponse,
