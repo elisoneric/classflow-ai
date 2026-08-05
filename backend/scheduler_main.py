@@ -63,7 +63,7 @@ async def main() -> None:
     configure_logging()
 
     scheduler = None
-    retries = 15
+    retries = 30
     for attempt in range(1, retries + 1):
         try:
             scheduler = build_scheduler()
@@ -73,7 +73,8 @@ async def main() -> None:
             if attempt == retries:
                 logger.error("Could not connect to database after %d attempts: %s", retries, exc)
                 raise
-            logger.warning("Database not ready yet (attempt %d/%d): %s. Retrying in 2s...", attempt, retries, exc)
+            err_summary = str(exc).splitlines()[0] if str(exc) else "Connection refused"
+            logger.warning("Database not ready yet (attempt %d/%d): %s. Retrying in 2s...", attempt, retries, err_summary)
             await asyncio.sleep(2)
 
     logger.info("Scheduler started (timezone=%s)", get_settings().timezone)
