@@ -15,12 +15,14 @@ x-backend-env: &backend-env
 services:
   postgres:
     image: postgres:16-alpine
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-classflow}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: ${POSTGRES_DB:-classflow}
     volumes:
-      - postgres_data_20260805:/var/lib/postgresql/data
+      - postgres_data_20260805_v2:/var/lib/postgresql/data
     # ports:
     #   - "5432:5432"
     healthcheck:
@@ -71,4 +73,4 @@ services:
       - backend
 
 volumes:
-  postgres_data_20260805:
+  postgres_data_20260805_v2:
