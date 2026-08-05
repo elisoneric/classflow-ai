@@ -3,7 +3,7 @@ from datetime import date
 from typing import Protocol
 
 from app.domain.enums import SessionStatus
-from app.infrastructure.db.models import Announcement, ClassSession, Reminder
+from app.infrastructure.db.models import Announcement, ClassSession, LecturerResponse, Reminder
 
 
 class ClassSessionRepository(Protocol):
@@ -23,8 +23,14 @@ class ClassSessionRepository(Protocol):
 class ReminderRepository(Protocol):
     async def list_for_session(self, class_session_id: uuid.UUID) -> list[Reminder]: ...
     async def list_pending_for_session(self, class_session_id: uuid.UUID) -> list[Reminder]: ...
+    async def get_by_id(self, reminder_id: uuid.UUID) -> Reminder | None: ...
+    async def get_by_outbound_message_id(self, message_id: str) -> Reminder | None: ...
     async def add(self, reminder: Reminder) -> None: ...
 
 
 class AnnouncementRepository(Protocol):
     async def add(self, announcement: Announcement) -> None: ...
+
+
+class LecturerResponseRepository(Protocol):
+    async def add(self, response: LecturerResponse) -> None: ...

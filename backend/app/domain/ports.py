@@ -7,6 +7,8 @@ rather than centralized here — see app/application/<feature>/ports.py — so
 each slice only depends on the query shapes it actually needs.
 """
 
+import uuid
+from datetime import datetime
 from typing import Protocol
 
 from app.domain.value_objects import DeliveryResult, Interpretation, SessionContext
@@ -23,10 +25,19 @@ class MessageInterpreter(Protocol):
 
 
 class SchedulerGateway(Protocol):
-    """Lets the application layer cancel a previously scheduled APScheduler job
-    (e.g. a retry/deadline check) without depending on APScheduler directly.
-    A no-op implementation is used until the scheduler process exists (see
-    PROJECT.md §9); the real one is wired in when it does.
+    """Lets the application layer schedule/cancel APScheduler jobs without
+    depending on APScheduler directly. See PROJECT.md §9. Job IDs are
+    deterministic (f"send-reminder-{session_id}-{attempt}" and
+    f"check-deadline-{session_id}-{attempt}") so a session can be cancelled
+    even before the Reminder row for its next attempt exists yet.
     """
+
+    async def schedule_reminder(
+        self, class_session_id: uuid.UUID, attempt_number: int, run_at: datetime
+    ) -> str: ...
+
+    async def schedule_deadline_check(
+        self, class_session_id: uuid.UUID, attempt_number: int, run_at: datetime
+    ) -> str: ...
 
     async def cancel_job(self, job_id: str) -> None: ...

@@ -8,21 +8,7 @@ from app.application.class_sessions.service import ClassSessionService
 from app.domain.enums import SessionStatus
 from app.domain.exceptions import ConflictError, InvalidStateTransitionError, NotFoundError
 from app.infrastructure.db.session import get_db
-from app.infrastructure.notifications.smtp_email_channel import SmtpEmailChannel
-from app.infrastructure.repositories.announcement_repository import (
-    SqlAlchemyAnnouncementRepository,
-)
-from app.infrastructure.repositories.audit_log_repository import SqlAlchemyAuditLogWriter
-from app.infrastructure.repositories.class_session_repository import (
-    SqlAlchemyClassSessionRepository,
-)
-from app.infrastructure.repositories.course_lecturer_repository import (
-    SqlAlchemyCourseLecturerRepository,
-)
-from app.infrastructure.repositories.course_repository import SqlAlchemyCourseRepository
-from app.infrastructure.repositories.lecturer_repository import SqlAlchemyLecturerRepository
-from app.infrastructure.repositories.reminder_repository import SqlAlchemyReminderRepository
-from app.infrastructure.scheduler.noop_gateway import NoOpSchedulerGateway
+from app.infrastructure.factories import build_class_session_service
 from app.presentation.api.deps import get_current_user
 from app.presentation.schemas.class_sessions import (
     ClassSessionDetailResponse,
@@ -37,18 +23,7 @@ router = APIRouter(
 
 
 def get_class_session_service(session: AsyncSession = Depends(get_db)) -> ClassSessionService:
-    return ClassSessionService(
-        SqlAlchemyClassSessionRepository(session),
-        SqlAlchemyReminderRepository(session),
-        SqlAlchemyAnnouncementRepository(session),
-        SqlAlchemyCourseRepository(session),
-        SqlAlchemyLecturerRepository(session),
-        SqlAlchemyCourseLecturerRepository(session),
-        SmtpEmailChannel(),
-        NoOpSchedulerGateway(),
-        SqlAlchemyAuditLogWriter(session),
-        session,
-    )
+    return build_class_session_service(session)
 
 
 @router.get("", response_model=list[ClassSessionResponse])

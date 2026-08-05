@@ -28,5 +28,15 @@ class SqlAlchemyReminderRepository:
         )
         return list(result.scalars().all())
 
+    async def get_by_id(self, reminder_id: uuid.UUID) -> Reminder | None:
+        result = await self._session.execute(select(Reminder).where(Reminder.id == reminder_id))
+        return result.scalar_one_or_none()
+
+    async def get_by_outbound_message_id(self, message_id: str) -> Reminder | None:
+        result = await self._session.execute(
+            select(Reminder).where(Reminder.outbound_message_id == message_id)
+        )
+        return result.scalar_one_or_none()
+
     async def add(self, reminder: Reminder) -> None:
         self._session.add(reminder)
