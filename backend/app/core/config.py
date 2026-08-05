@@ -1,5 +1,7 @@
 from functools import lru_cache
+from urllib.parse import quote, unquote
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +13,22 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:5173"
 
     database_url: str
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def sanitize_database_url(cls, v: str) -> str:
+        if not v or "://" not in v:
+            return v
+        scheme, rest = v.split("://", 1)
+        if "@" not in rest:
+            return v
+        userinfo, host_and_db = rest.rsplit("@", 1)
+        if ":" not in userinfo:
+            return v
+        user, password = userinfo.split(":", 1)
+        unquoted_password = unquote(password)
+        quoted_password = quote(unquoted_password, safe="")
+        return f"{scheme}://{user}:{quoted_password}@{host_and_db}"
     redis_url: str = "redis://localhost:6379/0"
 
     jwt_secret_key: str
