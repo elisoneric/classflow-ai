@@ -20,8 +20,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
-
+# Escape % signs in the URL to prevent configparser interpolation errors
+escaped_url = get_settings().database_url.replace("%", "%%")
+config.set_main_option("sqlalchemy.url", escaped_url)
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
