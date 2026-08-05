@@ -1,11 +1,36 @@
 x-backend-env: &backend-env
-  env_file:
-    - .env
   environment:
-    - PYTHONPATH=/app
-    - POSTGRES_USER=${POSTGRES_USER}
-    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    - POSTGRES_DB=${POSTGRES_DB}
+    PYTHONPATH: /app
+    POSTGRES_USER: ${POSTGRES_USER:-classflow}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    POSTGRES_DB: ${POSTGRES_DB:-classflow}
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: "5432"
+    REDIS_URL: redis://redis:6379/0
+    JWT_SECRET_KEY: ${JWT_SECRET_KEY:-changeme}
+    COURSE_REP_EMAIL: ${COURSE_REP_EMAIL:-admin@classflow.ai}
+    COURSE_REP_PASSWORD: ${COURSE_REP_PASSWORD:-changeme}
+    GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash}
+    AI_CONFIDENCE_THRESHOLD: ${AI_CONFIDENCE_THRESHOLD:-0.75}
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-haiku-4-5-20251001}
+    SMTP_HOST: ${SMTP_HOST:-}
+    SMTP_PORT: ${SMTP_PORT:-587}
+    SMTP_USERNAME: ${SMTP_USERNAME:-}
+    SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-classflow@example.com}
+    SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+    IMAP_HOST: ${IMAP_HOST:-}
+    IMAP_PORT: ${IMAP_PORT:-993}
+    IMAP_USERNAME: ${IMAP_USERNAME:-}
+    IMAP_PASSWORD: ${IMAP_PASSWORD:-}
+    IMAP_MAILBOX: ${IMAP_MAILBOX:-INBOX}
+    IMAP_USE_SSL: ${IMAP_USE_SSL:-true}
+    IMAP_POLL_INTERVAL_SECONDS: ${IMAP_POLL_INTERVAL_SECONDS:-75}
+    TIMEZONE: ${TIMEZONE:-Africa/Lagos}
+    FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+    ENVIRONMENT: ${ENVIRONMENT:-production}
   depends_on:
     postgres:
       condition: service_healthy
@@ -15,16 +40,12 @@ x-backend-env: &backend-env
 services:
   postgres:
     image: postgres:16-alpine
-    env_file:
-      - .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-classflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-classflow}
     volumes:
-      - classflow_postgres_final_v1:/var/lib/postgresql/data
-    # ports:
-    #   - "5432:5432"
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "PGPASSWORD=$$POSTGRES_PASSWORD pg_isready -h 127.0.0.1 -U $$POSTGRES_USER"]
       interval: 5s
@@ -33,8 +54,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    # ports:
-    #   - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -46,8 +65,6 @@ services:
       context: ./backend
     <<: *backend-env
     command: sh -c "alembic upgrade head && python scripts/seed_course_rep.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
-    # ports:
-    #   - "8000:8000"
 
   worker:
     build:
@@ -64,13 +81,10 @@ services:
   frontend:
     build:
       context: ./frontend
-    env_file:
-      - .env
-    command: npm run dev -- --host 0.0.0.0
-    # ports:
-    #   - "5173:5173"
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
     depends_on:
       - backend
 
 volumes:
-  classflow_postgres_final_v1:
+  pgdata:
