@@ -37,9 +37,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def assemble_db_url(self) -> "Settings":
-        if not self.database_url:
-            quoted_pass = quote(self.postgres_password, safe="")
-            self.database_url = f"postgresql+asyncpg://{self.postgres_user}:{quoted_pass}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        quoted_pass = quote(self.postgres_password, safe="")
+        self.database_url = f"postgresql+asyncpg://{self.postgres_user}:{quoted_pass}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         return self
     redis_url: str = "redis://localhost:6379/0"
 
