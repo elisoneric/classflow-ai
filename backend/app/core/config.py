@@ -1,7 +1,7 @@
 from functools import lru_cache
 from urllib.parse import quote, unquote
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,7 +12,12 @@ class Settings(BaseSettings):
     timezone: str = "Africa/Lagos"
     frontend_origin: str = "http://localhost:5173"
 
-    database_url: str
+    postgres_user: str = "classflow"
+    postgres_password: str = "changeme"
+    postgres_db: str = "classflow"
+    postgres_host: str = "postgres"
+    postgres_port: int = 5432
+    database_url: str = ""
 
     @field_validator("database_url", mode="before")
     @classmethod
@@ -29,6 +34,13 @@ class Settings(BaseSettings):
         unquoted_password = unquote(password)
         quoted_password = quote(unquoted_password, safe="")
         return f"{scheme}://{user}:{quoted_password}@{host_and_db}"
+
+    @model_validator(mode="after")
+    def assemble_db_url(self) -> "Settings":
+        if not self.database_url:
+            quoted_pass = quote(self.postgres_password, safe="")
+            self.database_url = f"postgresql+asyncpg://{self.postgres_user}:{quoted_pass}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        return self
     redis_url: str = "redis://localhost:6379/0"
 
     jwt_secret_key: str
