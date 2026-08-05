@@ -20,3 +20,13 @@ class MessageInterpreter(Protocol):
     async def interpret(
         self, raw_message: str, context: SessionContext
     ) -> Interpretation: ...
+
+
+class SchedulerGateway(Protocol):
+    """Lets the application layer cancel a previously scheduled APScheduler job
+    (e.g. a retry/deadline check) without depending on APScheduler directly.
+    A no-op implementation is used until the scheduler process exists (see
+    PROJECT.md §9); the real one is wired in when it does.
+    """
+
+    async def cancel_job(self, job_id: str) -> None: ...
