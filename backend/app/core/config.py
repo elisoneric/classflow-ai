@@ -36,8 +36,8 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 14
 
-    course_rep_email: str = "you@example.com"
-    course_rep_password: str = "changeme"
+    course_rep_email: str = "elisoneric123@gmail.com"
+    course_rep_password: str = "password"
 
     smtp_host: str = ""
     smtp_port: int = 587

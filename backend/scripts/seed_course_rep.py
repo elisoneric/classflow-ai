@@ -20,8 +20,11 @@ async def main() -> None:
         existing = await session.execute(
             select(User).where(User.email == settings.course_rep_email)
         )
-        if existing.scalar_one_or_none() is not None:
-            print(f"User {settings.course_rep_email} already exists — skipping.")
+        existing_user = existing.scalar_one_or_none()
+        if existing_user is not None:
+            existing_user.hashed_password = hash_password(settings.course_rep_password)
+            await session.commit()
+            print(f"Updated password for course rep user: {settings.course_rep_email}")
             return
 
         user = User(
