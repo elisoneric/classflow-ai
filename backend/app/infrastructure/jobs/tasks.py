@@ -22,7 +22,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.config import get_settings
 from app.domain.enums import CourseStatus, DayOfWeek
-from app.infrastructure.ai.anthropic_interpreter import AnthropicInterpreter
+from app.infrastructure.ai.gemini_interpreter import GeminiInterpreter
 from app.infrastructure.db.models import ClassSession, Course, TimetableSlot
 from app.infrastructure.db.session import async_session_maker
 from app.infrastructure.email.imap_poller import ImapEmailPoller
@@ -136,7 +136,7 @@ async def _process_inbound_message(message) -> None:
         reminder, _class_session, context = prepared
 
         cleaned = clean_reply(message.body)
-        interpreter = AnthropicInterpreter()
+        interpreter = GeminiInterpreter()
         interpretation = await interpreter.interpret(cleaned, context)
 
         await service.handle_lecturer_response(

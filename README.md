@@ -7,8 +7,9 @@ class is holding, interpreting the reply, and relaying it to the class — see
 ## Stack
 
 FastAPI + PostgreSQL + SQLAlchemy/Alembic (backend) · Redis + RQ + APScheduler
-(background jobs/scheduling) · Anthropic Claude (reply interpretation) ·
-React + TypeScript + Tailwind + React Query (frontend) · Docker Compose.
+(background jobs/scheduling) · Gemini 3.5 Flash (reply interpretation — Claude
+also supported, see ADR-4-rev2) · React + TypeScript + Tailwind + React Query
+(frontend) · Docker Compose.
 
 ## Prerequisites
 
@@ -18,7 +19,7 @@ React + TypeScript + Tailwind + React Query (frontend) · Docker Compose.
 ## Quickstart (Docker)
 
 1. Copy the environment template and fill in real values (SMTP, IMAP,
-   `ANTHROPIC_API_KEY`, and change `JWT_SECRET_KEY`/`COURSE_REP_EMAIL`/
+   `GEMINI_API_KEY`, and change `JWT_SECRET_KEY`/`COURSE_REP_EMAIL`/
    `COURSE_REP_PASSWORD` from the placeholders):
 
    ```bash
@@ -109,6 +110,11 @@ npm run lint
 - **AI confidence threshold** (`AI_CONFIDENCE_THRESHOLD`, default `0.75`):
   below this, a lecturer's reply is queued for your review instead of being
   auto-announced. See ADR-3.
+- **AI provider** (`GEMINI_API_KEY`/`GEMINI_MODEL`): Gemini is the active
+  `MessageInterpreter` — see ADR-4-rev2. An Anthropic Claude adapter also
+  exists (`ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL`) but isn't wired in by
+  default; switching providers means changing one import in
+  `app/infrastructure/jobs/tasks.py`.
 - **Inbound email** (`IMAP_*`): a dedicated mailbox the scheduler polls every
   `IMAP_POLL_INTERVAL_SECONDS`. See ADR-2 for why this is polling rather than
   a webhook.

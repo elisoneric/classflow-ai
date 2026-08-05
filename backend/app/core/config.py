@@ -36,8 +36,15 @@ class Settings(BaseSettings):
     imap_use_ssl: bool = True
     imap_poll_interval_seconds: int = 75
 
+    # Anthropic adapter kept as an alternate MessageInterpreter implementation
+    # (ADR-6) — Gemini is the active provider (ADR-4), selected in
+    # app/infrastructure/jobs/tasks.py, not here.
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-haiku-4-5-20251001"
+
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-3.5-flash"
+
     ai_confidence_threshold: float = 0.75
 
 
