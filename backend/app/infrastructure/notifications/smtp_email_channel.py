@@ -22,6 +22,9 @@ class SmtpEmailChannel:
         message["Message-ID"] = message_id
         message.set_content(body)
 
+        use_tls = self._settings.smtp_port == 465
+        start_tls = self._settings.smtp_use_tls if not use_tls else False
+
         try:
             await aiosmtplib.send(
                 message,
@@ -29,7 +32,8 @@ class SmtpEmailChannel:
                 port=self._settings.smtp_port,
                 username=self._settings.smtp_username or None,
                 password=self._settings.smtp_password or None,
-                start_tls=self._settings.smtp_use_tls,
+                use_tls=use_tls,
+                start_tls=start_tls,
             )
         except Exception as exc:
             return DeliveryResult(success=False, error=str(exc))
