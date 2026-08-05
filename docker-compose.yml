@@ -20,7 +20,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: ${POSTGRES_DB:-classflow}
     volumes:
-      - postgres_data_v3:/var/lib/postgresql/data
+      - postgres_data_20260805:/var/lib/postgresql/data
     # ports:
     #   - "5432:5432"
     healthcheck:
@@ -71,4 +71,4 @@ services:
       - backend
 
 volumes:
-  postgres_data_v3:
+  postgres_data_20260805:
