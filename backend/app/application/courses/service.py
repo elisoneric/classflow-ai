@@ -44,7 +44,11 @@ class CourseService:
         announcement_email: str,
     ) -> Course:
         course = Course(
-            semester_id=semester_id, code=code, title=title, announcement_email=announcement_email
+            semester_id=semester_id,
+            code=code,
+            title=title,
+            announcement_email=announcement_email,
+            status=CourseStatus.ACTIVE,
         )
         await self._repository.add(course)
         await self._session.flush()
