@@ -25,3 +25,7 @@ class UnsupportedContactMethodError(DomainError):
 
 class ConflictError(DomainError):
     """Raised for uniqueness violations or other state conflicts that aren't a status transition."""
+
+
+class ValidationError(DomainError):
+    """Raised for cross-field business rule violations that Pydantic's field-level validation can't express."""
