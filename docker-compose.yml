@@ -40,9 +40,7 @@ services:
     build:
       context: ./backend
     <<: *backend-env
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    volumes:
-      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     # ports:
     #   - "8000:8000"
 
@@ -51,16 +49,12 @@ services:
       context: ./backend
     <<: *backend-env
     command: python worker.py
-    volumes:
-      - ./backend:/app
 
   scheduler:
     build:
       context: ./backend
     <<: *backend-env
     command: python scheduler_main.py
-    volumes:
-      - ./backend:/app
 
   frontend:
     build:
@@ -68,9 +62,6 @@ services:
     env_file:
       - .env
     command: npm run dev -- --host 0.0.0.0
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     # ports:
     #   - "5173:5173"
     depends_on:
