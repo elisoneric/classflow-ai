@@ -1,6 +1,8 @@
 x-backend-env: &backend-env
   env_file:
     - .env
+  environment:
+    - PYTHONPATH=/app
   depends_on:
     postgres:
       condition: service_healthy
