@@ -27,11 +27,14 @@ from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.infrastructure.jobs.tasks import enqueue_poll_inbound_email, generate_daily_sessions
 
+from sqlalchemy.engine import make_url
+
 logger = logging.getLogger(__name__)
 
 
 def _sync_database_url(async_url: str) -> str:
-    return async_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+    url = make_url(async_url)
+    return str(url._replace(drivername="postgresql+psycopg2"))
 
 
 def build_scheduler() -> AsyncIOScheduler:
@@ -58,13 +61,27 @@ def build_scheduler() -> AsyncIOScheduler:
 
 async def main() -> None:
     configure_logging()
-    scheduler = build_scheduler()
-    scheduler.start()
+
+    scheduler = None
+    retries = 15
+    for attempt in range(1, retries + 1):
+        try:
+            scheduler = build_scheduler()
+            scheduler.start()
+            break
+        except Exception as exc:
+            if attempt == retries:
+                logger.error("Could not connect to database after %d attempts: %s", retries, exc)
+                raise
+            logger.warning("Database not ready yet (attempt %d/%d): %s. Retrying in 2s...", attempt, retries, exc)
+            await asyncio.sleep(2)
+
     logger.info("Scheduler started (timezone=%s)", get_settings().timezone)
     try:
         await asyncio.Event().wait()
     finally:
-        scheduler.shutdown()
+        if scheduler:
+            scheduler.shutdown()
 
 
 if __name__ == "__main__":
