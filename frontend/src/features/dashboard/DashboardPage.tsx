@@ -1,99 +1,108 @@
-import { useState } from "react";
-import { format } from "date-fns";
-import { useCourses } from "@/api/courses";
-import { useClassSessions, useResendReminder } from "@/api/classSessions";
-import type { ClassSession } from "@/api/types";
-import { StatusBadge } from "@/components/StatusBadge";
-import { OverrideDialog } from "@/components/OverrideDialog";
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Calendar, Users, BookOpen, LogOut, LayoutDashboard } from 'lucide-react';
 
-export function DashboardPage() {
-  const today = format(new Date(), "yyyy-MM-dd");
-  const { data: courses, isLoading: coursesLoading } = useCourses();
-  const { data: sessions, isLoading: sessionsLoading } = useClassSessions({
-    dateFrom: today,
-    dateTo: today,
-  });
-  const resendReminder = useResendReminder();
-  const [overrideSessionId, setOverrideSessionId] = useState<string | null>(null);
+export default function DashboardPage() {
+    const navigate = useNavigate();
 
-  if (coursesLoading || sessionsLoading) {
-    return <p className="text-sm text-gray-500">Loading…</p>;
-  }
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/login');
+    };
 
-  const activeCourses = (courses ?? []).filter((c) => c.status === "ACTIVE");
-  const sessionByCourse = new Map<string, ClassSession>();
-  for (const session of sessions ?? []) {
-    sessionByCourse.set(session.course_id, session);
-  }
-
-  return (
-    <div>
-      <h1 className="text-2xl font-semibold text-gray-900">
-        Today — {format(new Date(), "EEEE, MMMM d")}
-      </h1>
-
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {activeCourses.map((course) => {
-          const session = sessionByCourse.get(course.id);
-          return (
-            <div
-              key={course.id}
-              className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-semibold text-gray-900">{course.code}</p>
-                  <p className="text-sm text-gray-500">{course.title}</p>
+    return (
+        <div className="flex h-screen bg-slate-50">
+            {/* Sidebar */}
+            <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
+                <div className="p-6 border-b border-slate-200">
+                    <h2 className="text-2xl font-bold text-primary-600 font-heading">ClassFlow AI</h2>
                 </div>
-                {session && <StatusBadge value={session.outcome ?? session.status} />}
-              </div>
-
-              {!session && (
-                <p className="mt-3 text-sm text-gray-400">No class scheduled today.</p>
-              )}
-
-              {session && session.status !== "ANNOUNCED" && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setOverrideSessionId(session.id)}
-                    className="rounded-md bg-purple-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-700"
-                  >
-                    Override
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => resendReminder.mutate({ id: session.id })}
-                    disabled={resendReminder.isPending}
-                    className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Resend reminder
-                  </button>
+                <nav className="flex-1 p-4 space-y-2">
+                    <a href="#" className="flex items-center gap-3 px-4 py-3 bg-primary-50 text-primary-600 rounded-lg font-medium transition-colors">
+                        <LayoutDashboard size={20} /> Dashboard
+                    </a>
+                    <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-lg font-medium transition-colors">
+                        <BookOpen size={20} /> Courses
+                    </a>
+                    <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-lg font-medium transition-colors">
+                        <Users size={20} /> Lecturers
+                    </a>
+                    <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-lg font-medium transition-colors">
+                        <Calendar size={20} /> Timetable
+                    </a>
+                </nav>
+                <div className="p-4 border-t border-slate-200">
+                    <button 
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-3 w-full text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg font-medium transition-colors"
+                    >
+                        <LogOut size={20} /> Logout
+                    </button>
                 </div>
-              )}
+            </aside>
 
-              {session && session.status === "ANNOUNCED" && (
-                <p className="mt-3 text-xs text-gray-400">
-                  Announced
-                  {session.announced_at && ` at ${format(new Date(session.announced_at), "p")}`}
-                </p>
-              )}
-            </div>
-          );
-        })}
+            {/* Main Content */}
+            <main className="flex-1 overflow-y-auto p-8">
+                <header className="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-900 font-heading">Dashboard</h1>
+                        <p className="text-slate-500 mt-1">Today's Class Schedule & Status</p>
+                    </div>
+                </header>
 
-        {activeCourses.length === 0 && (
-          <p className="text-sm text-gray-500">No active courses yet.</p>
-        )}
-      </div>
+                {/* Dashboard Stats */}
+                <div className="grid grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 className="text-slate-500 font-medium mb-1">Total Courses</h3>
+                        <p className="text-3xl font-bold text-slate-900">4</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 className="text-slate-500 font-medium mb-1">Today's Classes</h3>
+                        <p className="text-3xl font-bold text-primary-600">2</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 className="text-slate-500 font-medium mb-1">Announcements Sent</h3>
+                        <p className="text-3xl font-bold text-emerald-600">12</p>
+                    </div>
+                </div>
 
-      {overrideSessionId && (
-        <OverrideDialog
-          sessionId={overrideSessionId}
-          mode="override"
-          onClose={() => setOverrideSessionId(null)}
-        />
-      )}
-    </div>
-  );
+                {/* Timeline / Classes */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                    <h2 className="text-xl font-bold text-slate-900 mb-4 font-heading">Today's Sessions</h2>
+                    
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50">
+                            <div className="flex items-center gap-4">
+                                <div className="w-2 h-12 bg-emerald-500 rounded-full"></div>
+                                <div>
+                                    <h4 className="font-bold text-slate-900 text-lg">CSC 803</h4>
+                                    <p className="text-slate-500 text-sm">Prof. Smith • 10:00 AM - 12:00 PM • Lab 2</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold">
+                                    CONFIRMED
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50">
+                            <div className="flex items-center gap-4">
+                                <div className="w-2 h-12 bg-amber-500 rounded-full"></div>
+                                <div>
+                                    <h4 className="font-bold text-slate-900 text-lg">SEN 807</h4>
+                                    <p className="text-slate-500 text-sm">Dr. Johnson • 2:00 PM - 4:00 PM • E125</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold">
+                                    WAITING
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    );
 }

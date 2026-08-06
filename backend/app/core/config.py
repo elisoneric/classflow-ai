@@ -1,86 +1,39 @@
-from functools import lru_cache
-from urllib.parse import quote, unquote
-
-from pydantic import field_validator, model_validator
+import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
+from pydantic import AnyHttpUrl, validator
+from typing import List, Union
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    PROJECT_NAME: str = "ClassFlow AI"
+    API_V1_STR: str = "/api/v1"
+    SECRET_KEY: str = "supersecretkey_please_change_in_production"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+    
+    # DATABASE
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://classflow:classflow_password@localhost:5432/classflow")
+    
+    # REDIS / RQ
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    
+    # EMAIL IMAP (Ingestion)
+    IMAP_SERVER: str = os.getenv("IMAP_SERVER", "")
+    IMAP_PORT: int = int(os.getenv("IMAP_PORT", 993))
+    IMAP_USER: str = os.getenv("IMAP_USER", "")
+    IMAP_PASSWORD: str = os.getenv("IMAP_PASSWORD", "")
+    
+    # EMAIL SMTP (Sending)
+    SMTP_SERVER: str = os.getenv("SMTP_SERVER", "")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", 587))
+    SMTP_USER: str = os.getenv("SMTP_USER", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+    FROM_EMAIL: str = os.getenv("FROM_EMAIL", "classflow@example.com")
+    
+    # WHATSAPP BOT API URL (Internal microservice)
+    WHATSAPP_BOT_URL: str = os.getenv("WHATSAPP_BOT_URL", "http://whatsapp-bot:3000")
+    
+    # AI (Gemini)
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
-    environment: str = "development"
-    timezone: str = "Africa/Lagos"
-    frontend_origin: str = "http://localhost:5173"
+    model_config = SettingsConfigDict(case_sensitive=True, env_file=".env")
 
-    postgres_user: str = "classflow"
-    postgres_password: str = ""
-    postgres_db: str = "classflow"
-    postgres_host: str = "postgres"
-    postgres_port: int = 5432
-    database_url: str = ""
-
-    @field_validator("database_url", mode="before")
-    @classmethod
-    def sanitize_database_url(cls, v: str) -> str:
-        if not v or "://" not in v:
-            return v
-        scheme, rest = v.split("://", 1)
-        if "@" not in rest:
-            return v
-        userinfo, host_and_db = rest.rsplit("@", 1)
-        if ":" not in userinfo:
-            return v
-        user, password = userinfo.split(":", 1)
-        unquoted_password = unquote(password)
-        quoted_password = quote(unquoted_password, safe="")
-        return f"{scheme}://{user}:{quoted_password}@{host_and_db}"
-
-    @model_validator(mode="after")
-    def assemble_db_url(self) -> "Settings":
-        if self.postgres_password:
-            quoted_pass = quote(self.postgres_password, safe="")
-            userinfo = f"{self.postgres_user}:{quoted_pass}"
-        else:
-            userinfo = self.postgres_user
-        self.database_url = f"postgresql+asyncpg://{userinfo}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
-        return self
-    redis_url: str = "redis://localhost:6379/0"
-
-    jwt_secret_key: str
-    jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
-    refresh_token_expire_days: int = 14
-
-    course_rep_email: str = "elisoneric123@gmail.com"
-    course_rep_password: str = "password"
-
-    smtp_host: str = ""
-    smtp_port: int = 587
-    smtp_username: str = ""
-    smtp_password: str = ""
-    smtp_from_email: str = "classflow@example.com"
-    smtp_use_tls: bool = True
-
-    imap_host: str = ""
-    imap_port: int = 993
-    imap_username: str = ""
-    imap_password: str = ""
-    imap_mailbox: str = "INBOX"
-    imap_use_ssl: bool = True
-    imap_poll_interval_seconds: int = 75
-
-    # Anthropic adapter kept as an alternate MessageInterpreter implementation
-    # (ADR-6) — Gemini is the active provider (ADR-4), selected in
-    # app/infrastructure/jobs/tasks.py, not here.
-    anthropic_api_key: str = ""
-    anthropic_model: str = "claude-haiku-4-5-20251001"
-
-    gemini_api_key: str = ""
-    gemini_model: str = "gemini-3.5-flash"
-
-    ai_confidence_threshold: float = 0.75
-
-
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()
+settings = Settings()

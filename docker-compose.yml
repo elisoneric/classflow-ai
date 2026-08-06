@@ -1,105 +1,84 @@
+version: '3.8'
+
 services:
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
+  db:
+    image: postgres:15-alpine
     environment:
       POSTGRES_USER: classflow
+      POSTGRES_PASSWORD: classflow_password
       POSTGRES_DB: classflow
-      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "classflow"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
   backend:
     build:
       context: ./backend
-    restart: unless-stopped
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
     environment:
-      PYTHONPATH: /app
-      POSTGRES_USER: classflow
-      POSTGRES_DB: classflow
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: "5432"
-      REDIS_URL: redis://redis:6379/0
-      ENVIRONMENT: production
-    command: sh -c "alembic upgrade head && python scripts/seed_course_rep.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      - DATABASE_URL=postgresql://classflow:classflow_password@db:5432/classflow
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 30s
+      - db
+      - redis
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
 
   worker:
     build:
       context: ./backend
-    restart: unless-stopped
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
     environment:
-      PYTHONPATH: /app
-      POSTGRES_USER: classflow
-      POSTGRES_DB: classflow
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: "5432"
-      REDIS_URL: redis://redis:6379/0
-      ENVIRONMENT: production
-    command: python worker.py
+      - DATABASE_URL=postgresql://classflow:classflow_password@db:5432/classflow
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - db
+      - redis
+    command: rq worker -u redis://redis:6379/0 classflow_tasks
+    restart: unless-stopped
 
-  scheduler:
+  whatsapp-bot:
     build:
-      context: ./backend
+      context: ./whatsapp-bot
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./whatsapp-bot/auth_info_baileys:/app/auth_info_baileys
     restart: unless-stopped
-    environment:
-      PYTHONPATH: /app
-      POSTGRES_USER: classflow
-      POSTGRES_DB: classflow
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: "5432"
-      REDIS_URL: redis://redis:6379/0
-      ENVIRONMENT: production
-    command: python scheduler_main.py
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
 
   frontend:
     build:
       context: ./frontend
-      args:
-        VITE_API_BASE_URL: /api/v1
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    command: npm run dev -- --host 0.0.0.0
     restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO /dev/null http://127.0.0.1:80/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 volumes:
-  pgdata:
+  postgres_data:
+  redis_data:
