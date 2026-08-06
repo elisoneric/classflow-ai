@@ -28,10 +28,12 @@ def init_db(db: Session) -> None:
         logger.info("Admin user already exists")
 
 def main() -> None:
+    print("Starting database initialization...")
     logger.info("Creating initial data")
     db = SessionLocal()
     init_db(db)
     logger.info("Initial data created")
+    print("Database initialization finished successfully!")
 
 if __name__ == "__main__":
     main()
