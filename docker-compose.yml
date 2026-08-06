@@ -87,6 +87,8 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_API_URL=${VITE_API_URL:-/api/v1}
+    depends_on:
+      - backend
     restart: unless-stopped
 
 volumes:
