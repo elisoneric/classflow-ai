@@ -69,14 +69,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     ports:
-      - "5173:5173"
-    environment:
-      - NODE_ENV=development
-    command: npm run dev -- --host 0.0.0.0
+      - "5173:80"
     restart: unless-stopped
 
 volumes:
