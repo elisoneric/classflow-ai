@@ -21,8 +21,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    volumes:
-      - ./backend:/app
     environment:
       - DATABASE_URL=postgresql://classflow:classflow_password@db:5432/classflow
       - REDIS_URL=redis://redis:6379/0
@@ -37,8 +35,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    volumes:
-      - ./backend:/app
     environment:
       - DATABASE_URL=postgresql://classflow:classflow_password@db:5432/classflow
       - REDIS_URL=redis://redis:6379/0
@@ -54,7 +50,7 @@ services:
       context: ./whatsapp-bot
       dockerfile: Dockerfile
     volumes:
-      - ./whatsapp-bot/auth_info_baileys:/app/auth_info_baileys
+      - whatsapp_auth:/app/auth_info_baileys
     restart: unless-stopped
 
   frontend:
@@ -66,3 +62,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  whatsapp_auth:
