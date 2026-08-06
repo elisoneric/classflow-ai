@@ -59,8 +59,6 @@ services:
     build:
       context: ./whatsapp-bot
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
     volumes:
       - ./whatsapp-bot/auth_info_baileys:/app/auth_info_baileys
     restart: unless-stopped
