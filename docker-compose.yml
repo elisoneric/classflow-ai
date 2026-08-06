@@ -4,9 +4,9 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: classflow
-      POSTGRES_PASSWORD: classflow_password
-      POSTGRES_DB: classflow
+      POSTGRES_USER: ${POSTGRES_USER:-classflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-classflow_password}
+      POSTGRES_DB: ${POSTGRES_DB:-classflow}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -22,9 +22,22 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      - DATABASE_URL=postgresql://classflow:classflow_password@db:5432/classflow
-      - REDIS_URL=redis://redis:6379/0
-      - ENVIRONMENT=development
+      - DATABASE_URL=${DATABASE_URL:-postgresql://classflow:classflow_password@db:5432/classflow}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - SECRET_KEY=${SECRET_KEY:-supersecretkey_please_change_in_production}
+      - IMAP_SERVER=${IMAP_SERVER:-}
+      - IMAP_PORT=${IMAP_PORT:-993}
+      - IMAP_USER=${IMAP_USER:-}
+      - IMAP_PASSWORD=${IMAP_PASSWORD:-}
+      - SMTP_SERVER=${SMTP_SERVER:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - FROM_EMAIL=${FROM_EMAIL:-classflow@example.com}
+      - WHATSAPP_BOT_URL=${WHATSAPP_BOT_URL:-http://whatsapp-bot:3000}
+      - WHATSAPP_GROUP_JID=${WHATSAPP_GROUP_JID:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     depends_on:
       - db
       - redis
@@ -36,9 +49,22 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      - DATABASE_URL=postgresql://classflow:classflow_password@db:5432/classflow
-      - REDIS_URL=redis://redis:6379/0
-      - ENVIRONMENT=development
+      - DATABASE_URL=${DATABASE_URL:-postgresql://classflow:classflow_password@db:5432/classflow}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - SECRET_KEY=${SECRET_KEY:-supersecretkey_please_change_in_production}
+      - IMAP_SERVER=${IMAP_SERVER:-}
+      - IMAP_PORT=${IMAP_PORT:-993}
+      - IMAP_USER=${IMAP_USER:-}
+      - IMAP_PASSWORD=${IMAP_PASSWORD:-}
+      - SMTP_SERVER=${SMTP_SERVER:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - FROM_EMAIL=${FROM_EMAIL:-classflow@example.com}
+      - WHATSAPP_BOT_URL=${WHATSAPP_BOT_URL:-http://whatsapp-bot:3000}
+      - WHATSAPP_GROUP_JID=${WHATSAPP_GROUP_JID:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     depends_on:
       - db
       - redis
@@ -49,6 +75,8 @@ services:
     build:
       context: ./whatsapp-bot
       dockerfile: Dockerfile
+    environment:
+      - WHATSAPP_GROUP_JID=${WHATSAPP_GROUP_JID:-}
     volumes:
       - whatsapp_auth:/app/auth_info_baileys
     restart: unless-stopped
@@ -58,7 +86,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=${VITE_API_URL}
+        - VITE_API_URL=${VITE_API_URL:-/api/v1}
     restart: unless-stopped
 
 volumes:
