@@ -2,21 +2,17 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-classflow}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-classflow_password}
       POSTGRES_DB: ${POSTGRES_DB:-classflow}
-    ports:
-      - "5439:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6389:6379"
     volumes:
       - redis_data:/data
     restart: unless-stopped
@@ -25,8 +21,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "8085:8000"
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql://classflow:classflow_password@db:5432/classflow}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
@@ -81,8 +75,6 @@ services:
     build:
       context: ./whatsapp-bot
       dockerfile: Dockerfile
-    ports:
-      - "3085:3000"
     environment:
       - WHATSAPP_GROUP_JID=${WHATSAPP_GROUP_JID:-}
     volumes:
@@ -95,8 +87,6 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_API_URL=${VITE_API_URL:-/api/v1}
-    ports:
-      - "5178:80"
     depends_on:
       - backend
     restart: unless-stopped
