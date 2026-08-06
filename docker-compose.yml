@@ -7,16 +7,12 @@ services:
       POSTGRES_USER: classflow
       POSTGRES_PASSWORD: classflow_password
       POSTGRES_DB: classflow
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     restart: unless-stopped
@@ -27,8 +23,6 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./backend:/app
-    ports:
-      - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://classflow:classflow_password@db:5432/classflow
       - REDIS_URL=redis://redis:6379/0
@@ -67,8 +61,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "5173:80"
     restart: unless-stopped
 
 volumes:
